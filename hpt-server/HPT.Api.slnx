@@ -1,0 +1,9 @@
+<Solution>
+  <Project Path="HPT.Api/HPT.Api.csproj" />
+  <Project Path="HTP.App/HTP.App.csproj" />
+  <Project Path="HTP.Domain/HTP.Domain.csproj" />
+  <Project Path="HTP.Infrastructure/HTP.Infrastructure.csproj" />
+  <Project Path="HTP.IntegrationTests/HTP.IntegrationTests.csproj" Id="31088009-1254-4bd9-a09a-7d6bdd5a6249" />
+  <Project Path="HTP.SharedKernel/HTP.SharedKernel.csproj" />
+  <Project Path="HTP.Tests/HTP.UnitTests.csproj" Id="030d85b4-0270-4fa2-abac-6c1483206208" />
+</Solution>

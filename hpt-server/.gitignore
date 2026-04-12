@@ -1,0 +1,45 @@
+# Build outputs
+**/bin/
+**/obj/
+**/[Dd]ebug/
+**/[Rr]elease/
+**/artifacts/
+**/publish/
+
+# Visual Studio / MSBuild user-specific files
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.rsuser
+
+# Rider / IntelliJ
+.idea/
+*.sln.iml
+
+# VS Code
+.vscode/
+
+# NuGet (packages.config)
+**/packages/
+
+# Test results / coverage
+**/TestResults/
+*.trx
+*.coverage
+*.coveragexml
+coverage*/
+
+# Logs
+*.log
+
+# Local environment / secrets
+.env
+.env.*
+**/secrets.json
+**/appsettings.*.local.json
+
+# OS generated
+.DS_Store
+Thumbs.db
