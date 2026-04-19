@@ -5,22 +5,32 @@ namespace HTP.Infrastructure.Persistence.Repositories;
 
 public class UserRoleRepository(WriteDbContext writeDbContext) : IUserRoleRepository
 {
-
-    public Task<bool> AddUserToRoleAsync(Guid userId, string roleName, CancellationToken ct = default)
+    public async Task<RoleDto?> GetRoleAsync(Guid roleId, CancellationToken ct = default)
     {
-        //writeDbContext.role
-        //dokonczyc
-        throw new NotImplementedException();
+        return await writeDbContext.Roles
+            .Where(r => r.Id == roleId)
+            .Select(r => new RoleDto(r.Id, r.Name.Value, null))
+            .FirstOrDefaultAsync(ct);
     }
 
-    public Task<RoleDto?> GetRoleAsync(Guid roleId, CancellationToken ct = default)
+    public async Task<RoleDto?> GetRoleByNameAsync(string roleName, CancellationToken ct = default)
     {
-        throw new NotImplementedException();
+        return await writeDbContext.Roles
+            .Where(r => r.Name.Value == roleName)
+            .Select(r => new RoleDto(r.Id, r.Name.Value, null))
+            .FirstOrDefaultAsync(ct);
     }
 
-    public Task<HashSet<string>> GetRolesPermissionsAsync(IEnumerable<string> roleNames, CancellationToken ct = default)
+    public async Task<HashSet<string>> GetRolesPermissionsAsync(IEnumerable<string> roleNames, CancellationToken ct = default)
     {
-        throw new NotImplementedException();
+        var permissions = await writeDbContext.Roles
+            .Where(r => roleNames.Contains(r.Name.Value))
+            .SelectMany(r => r.RolePermissions)
+            .Select(rp => rp.PermissionId.Value)
+            .Distinct()
+            .ToListAsync(ct);
+
+        return permissions.ToHashSet();
     }
 
     public async Task<IEnumerable<string>> GetUserRolesAsync(Guid userId, CancellationToken ct = default)
@@ -32,12 +42,5 @@ public class UserRoleRepository(WriteDbContext writeDbContext) : IUserRoleReposi
                 r => r.Id,
                 (ur, r) => r.Name.Value)
             .ToListAsync(ct);
-
-
-    }
-
-    public Task<bool> RemoveUserFromRoleAsync(Guid userId, string roleName, CancellationToken ct = default)
-    {
-        throw new NotImplementedException();
     }
 }

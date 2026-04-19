@@ -76,7 +76,7 @@ public class User : Entity
 
         _roles.Add(new UserRole(Id, roleId));
 
-        //AddDomainEvent(new UserRoleAddedDomainEvent(Id, roleId));
+        AddDomainEvent(new UserRoleAddedDomainEvent(Id, roleId));
     }
 
     public void RemoveRole(Guid roleId)
@@ -87,6 +87,6 @@ public class User : Entity
 
         _roles.Remove(role);
 
-        //AddDomainEvent(new UserRoleRemovedDomainEvent(Id, roleId));
+        AddDomainEvent(new UserRoleRemovedDomainEvent(Id, roleId));
     }
 }

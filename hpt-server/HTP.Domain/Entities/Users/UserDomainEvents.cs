@@ -12,3 +12,7 @@ public record UserDeactivatedDomainEvent(Guid UserId) : IDomainEvent;
 public record UserActivatedDomainEvent(Guid UserId) : IDomainEvent;
 
 public record UserPasswordChangedDomainEvent(Guid UserId) : IDomainEvent;
+
+public record UserRoleAddedDomainEvent(Guid UserId, Guid RoleId) : IDomainEvent;
+
+public record UserRoleRemovedDomainEvent(Guid UserId, Guid RoleId) : IDomainEvent;

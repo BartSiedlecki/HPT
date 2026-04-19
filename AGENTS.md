@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # HPT — Fullstack Web Application
 
 ## Overview
@@ -38,7 +42,8 @@ hpt-server/          # ASP.NET Core backend (Clean Architecture)
 npm install            # Install dependencies
 npm run dev            # Dev server (port 3000)
 npm run build          # Production build
-npm test               # Run Vitest
+npm test               # Run all Vitest tests
+npm test -- src/foo.test.ts          # Run a single test file
 npm run check          # Prettier + ESLint fix
 ```
 
@@ -46,12 +51,32 @@ npm run check          # Prettier + ESLint fix
 ```
 dotnet build                                  # Build solution
 dotnet test                                   # Run all tests
+dotnet test --filter "FullyQualifiedName~UserTests"  # Run a single test class
 dotnet run --project HPT.Api/HPT.Api.csproj   # Run API
-dotnet ef database update                     # Apply migrations
+dotnet ef migrations add <Name> --project HTP.Infrastructure --startup-project HPT.Api
+dotnet ef database update --project HTP.Infrastructure --startup-project HPT.Api
 ```
+
+## Architecture
+
+### CQRS via custom mediator
+
+Commands and queries are dispatched through a custom `IDispatcher` that resolves handlers at runtime via `IServiceProvider`. Handlers are auto-discovered by Scrutor assembly scanning — no manual registration needed. Each use case lives in `HTP.App/{Feature}/` as a `Command`/`Query` + `Handler` + optional `Validator` trio.
+
+### Decorator pipeline
+
+Every handler is automatically wrapped (outermost → innermost): `LoggingDecorator` → `ValidationDecorator` → handler. The `ValidationDecorator` runs FluentValidation and short-circuits with a `Result.Failure` before the handler executes.
+
+### Result pattern
+
+All handlers return `Result` or `Result<T>` — never throw for business errors. Errors are typed (`NotFound`, `Conflict`, `Validation`, `Unauthorized`, `Forbidden`, etc.) and mapped to HTTP status codes in `HPT.Api/Infrastructure/CustomResults.cs`. Use `ResultExtensions.Match()` in controllers to build responses.
+
+### JWT + Refresh tokens
+
+Access tokens carry user ID, email, roles, and permissions as claims. Refresh tokens are domain entities supporting rotation via `RefreshToken.Update()`. Both are issued together by `JwtTokenIssuer`.
 
 ## Additional Documentation
 
-- [Server details](hpt-server/AGENTS.md) — Clean Architecture layers, entry points, DI setup
-- [Client details](hpt-client/AGENTS.md) — routing, components, data fetching
-- [Architectural patterns](.agents/docs/architectural_patterns.md) — CQRS, Result pattern, decorators, auth flow, DI conventions
+- [Server details](hpt-server/CLAUDE.md) — Clean Architecture layers, entry points, DI setup
+- [Client details](hpt-client/CLAUDE.md) — routing, components, data fetching
+- [Architectural patterns](.agents/docs/architectural_patterns.md) — full pattern details with file references

@@ -53,8 +53,6 @@ internal sealed class CreateUserByAdminCommandHandler(
         if (createIdentityUserResult.IsFailure)
             return Result.Failure<CreateUserByAdminResponse>(createIdentityUserResult.Error);
 
-        await unitOfWork.SaveChangesAsync(ct);
-
         // Generate password reset token
         var tokenResult = await identityService.GeneratePasswordResetTokenAsync(user.Id, ct);
         if (tokenResult.IsFailure)
@@ -65,7 +63,11 @@ internal sealed class CreateUserByAdminCommandHandler(
         // Assign roles
         foreach (var roleName in command.Roles)
         {
-            await userRoleRepository.AddUserToRoleAsync(user.Id, roleName, ct);
+            var role = await userRoleRepository.GetRoleByNameAsync(roleName, ct);
+            if (role is null)
+                return Result.Failure<CreateUserByAdminResponse>(UserApplicationErrors.RoleNotFound(roleName));
+
+            user.AddRole(role.Id);
         }
 
         await unitOfWork.SaveChangesAsync(ct);

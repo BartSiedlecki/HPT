@@ -5,7 +5,7 @@ using HTP.Domain.Entities.Roles.Events;
 using HTP.Domain.Entities.Roles.ValueObjects;
 using HTP.Domain.ValueObjects;
 
-namespace HTP.UnitTests.Domain.ValueObjects;
+namespace HTP.UnitTests.Domain;
 
 public class RoleTests
 {

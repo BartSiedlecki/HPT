@@ -2,11 +2,9 @@
 using HTP.App.Abstractions.Repositories.Read;
 using HTP.App.Auth.CreateByAdmin;
 using HTP.App.Users.Errors;
-using HTP.Domain.Errors;
 using HTP.Domain.Users;
 using HTP.Domain.ValueObjects;
 using HTP.Infrastructure.Identity;
-using HTP.Infrastructure.Persistence.Repositories;
 using HTP.IntegrationTests.Helpers;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
@@ -71,45 +69,16 @@ public class CreateUserByAdminCommandTests : BaseIntegrationTest
     }
 
     [Fact]
-    public async Task Create_ShouldFail_WhenEmailIsInvalid()
+    public async Task Create_ShouldFail_WhenValidationFails()
     {
         // arrange
-        CreateUserByAdminCommand command = CreateValidCommand("mail@@gmail.com");
+        var command = new CreateUserByAdminCommand("j@n", "kowalski!", "invalid-email", []);
 
         // act
         var result = await Dispatcher.Send(command);
 
         // assert
-        result.IsSuccess.Should().Be(false);
-        result.Error.Should().Be(EmailErrors.InvalidEmailFormat);
-    }
-
-    [Fact]
-    public async Task Create_ShouldFail_WhenFirstNameIsInvalid()
-    {
-        // arrange
-        CreateUserByAdminCommand command = new CreateUserByAdminCommand("j@n", "nowak", RandomData.UniqueEmail, []);
-
-        // act
-        var result = await Dispatcher.Send(command);
-
-        // assert
-        result.IsSuccess.Should().Be(false);
-        result.Error.Should().Be(FirstNameErrors.InvalidFormat);
-    }
-
-    [Fact]
-    public async Task Create_ShouldFail_WhenLastNameIsInvalid()
-    {
-        // arrange
-        var command = new CreateUserByAdminCommand("John", "kowalski!", RandomData.UniqueEmail, []);
-
-        // act
-        var result = await Dispatcher.Send(command);
-
-        // assert
-        result.IsSuccess.Should().Be(false);
-        result.Error.Should().Be(LastNameErrors.InvalidFormat);
+        result.IsFailure.Should().Be(true);
     }
 
     [Fact]

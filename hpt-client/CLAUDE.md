@@ -1,0 +1,1 @@
+C:/Users/barte/source/repos/HPT/hpt-client/AGENTS.md

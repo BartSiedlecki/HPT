@@ -1,159 +1,76 @@
-# HTP.IntegrationTests — Integration Tests
+# CLAUDE.md — HTP.IntegrationTests
 
 ## Framework
 
-xUnit 2.9.3 + FluentAssertions 8.9.0 + Testcontainers.PostgreSql 4.11.0 + Microsoft.AspNetCore.Mvc.Testing
+xUnit 2.9.3 + FluentAssertions 8.9.0 + Testcontainers (PostgreSQL)
 
 ## Scope
 
-Tests the full command/query pipeline through real infrastructure — dispatching commands, hitting a real PostgreSQL database, and verifying persistence.
+Tests **application layer commands and queries** against a real PostgreSQL database spun up in Docker via Testcontainers. No HTTP client — commands are dispatched directly through `IDispatcher`. Both `WriteDbContext` and `ReadDbContext` are wired to the container database.
+
+## Infrastructure
+
+- `IntegrationTestWebAppFactory` — extends `WebApplicationFactory<Program>`, starts a `PostgreSqlContainer`, replaces `WriteDbContext`/`ReadDbContext`/`AppIdentityDbContext` with container-backed instances, and runs EF migrations on startup.
+- `BaseIntegrationTest` — base class for all test classes. Exposes `Dispatcher`, `WriteDbContext`, `ReadDbContext`, and `GetRequiredService<T>()`. Inherit from it and inject the factory via `IClassFixture<IntegrationTestWebAppFactory>`.
 
 ## Run
 
-```
+```bash
 dotnet test hpt-server/HTP.IntegrationTests/
 ```
 
-Requires **Docker** running (Testcontainers spins up a PostgreSQL 17 container).
-
-## Structure
-
-```
-HTP.IntegrationTests/
-  Auth/                         # Auth feature tests
-  Helpers/
-    RandomData.cs               # Test data generators
-  BaseIntegrationTest.cs        # Abstract base class for all tests
-  IntegrationTestWebAppFactory.cs  # WebApplicationFactory + Testcontainers setup
-```
-
-- **Namespace**: `HTP.IntegrationTests.{Feature}` (e.g., `HTP.IntegrationTests.Auth`)
-- **Directory**: Organized by feature/domain area
-- **Class naming**: `{CommandOrFeature}Tests` (e.g., `CreateUserByAdminCommandTests`)
-
-## Test infrastructure
-
-### Base class
-
-All integration test classes must extend `BaseIntegrationTest`:
-
-```csharp
-public class MyCommandTests : BaseIntegrationTest
-{
-    public MyCommandTests(IntegrationTestWebAppFactory factory) : base(factory)
-    {
-    }
-}
-```
-
-`BaseIntegrationTest` provides:
-- `Dispatcher` — sends commands/queries through the full pipeline
-- `WriteDbContext` / `ReadDbContext` — direct database access
-- `GetRequiredService<T>()` — resolve any registered service
-
-### WebApplicationFactory
-
-`IntegrationTestWebAppFactory` implements `IClassFixture` and `IAsyncLifetime`:
-- Starts a PostgreSQL 17 container via Testcontainers
-- Replaces `WriteDbContext`, `ReadDbContext`, `AppIdentityDbContext` with test container connection
-- Auto-runs EF Core migrations on startup
+Docker must be running — Testcontainers starts a `postgres:17` container automatically.
 
 ## Conventions
 
-### Method naming
+### Naming
 
-Same as unit tests:
+- **Namespace**: `HTP.IntegrationTests.{Feature}` (e.g. `HTP.IntegrationTests.Auth`)
+- **Class**: `{CommandOrQuery}Tests`
+- **Method**: `{Method}_Should{ExpectedBehavior}_When{Condition}`
 
-```
-{Method}_Should{ExpectedBehavior}_When{Condition}
-```
+### Structure
 
-Examples:
-- `Create_ShouldSuccess_WhenCredentialsAreValid`
-- `Create_ShouldFail_WhenEmailAlreadyExists`
-- `Create_ShouldPersistDomainUser_InDatabase`
-
-### Arrange-Act-Assert
-
-Every test uses `// arrange`, `// act`, `// assert` comments (lowercase):
+Same `// arrange`, `// act`, `// assert` comments as unit tests (lowercase, always present):
 
 ```csharp
 [Fact]
-public async Task Create_ShouldFail_WhenEmailAlreadyExists()
+public async Task Create_ShouldSuccess_WhenCredentialsAreValid()
 {
     // arrange
-    var email = RandomData.UniqueEmail;
-    CreateUserByAdminCommand command = CreateValidCommand(email);
-    CreateUserByAdminCommand duplicatedEmailCommand = CreateValidCommand(email);
+    var command = CreateValidCommand();
 
     // act
     var result = await Dispatcher.Send(command);
-    var secondResult = await Dispatcher.Send(duplicatedEmailCommand);
 
     // assert
     result.IsSuccess.Should().Be(true);
-    secondResult.IsSuccess.Should().Be(false);
-    secondResult.Error.Should().Be(UserApplicationErrors.EmailAlreadyExists);
 }
 ```
 
-### Async
-
-All integration tests must be `async Task` (not `void`).
-
-### Test attributes
-
-- `[Fact]` — single test case
-- `[Theory]` + `[InlineData]` — parametrized test cases
-
 ### Assertions
 
-Use **FluentAssertions** for all new tests. Do not use xUnit `Assert.*`.
+Use **FluentAssertions** only — never `Assert.*`.
 
-### Dispatching commands
+### Test data
 
-Execute commands through the full pipeline via `Dispatcher.Send()`:
+Use `RandomData.UniqueEmail` for unique emails (generates a `Guid`-based address). Add helpers to `Helpers/RandomData.cs` as needed.
+
+Use private `CreateValid{Command}()` factory methods within test classes for reusable valid inputs:
 
 ```csharp
-var result = await Dispatcher.Send(command);
+private CreateUserByAdminCommand CreateValidCommand(string? email = null)
+{
+    return new CreateUserByAdminCommand("jan", "kowalski", email ?? RandomData.UniqueEmail, []);
+}
 ```
 
-### Database verification
+### Verifying persistence
 
-After a command succeeds, verify persistence by resolving repositories or services:
+Resolve repositories or `UserManager<AppIdentityUser>` via `GetRequiredService<T>()` to assert database state after a command:
 
 ```csharp
 var userRepository = GetRequiredService<IUserRepository>();
 var userInDb = await userRepository.GetByEmailAsync(emailVo);
 userInDb.Should().NotBeNull();
 ```
-
-### Error assertions
-
-Verify specific error types from domain or application error constants:
-
-```csharp
-result.Error.Should().Be(FirstNameErrors.InvalidFormat);
-result.Error.Should().Be(UserApplicationErrors.EmailAlreadyExists);
-```
-
-### Test data
-
-- **Unique emails**: Use `RandomData.UniqueEmail` (generates `jan.{guid}@mail.com`)
-- **Valid commands**: Private `CreateValidCommand()` factory methods with optional parameter overrides:
-
-```csharp
-private CreateUserByAdminCommand CreateValidCommand(string? email = null)
-{
-    return new CreateUserByAdminCommand(
-        "jan",
-        "kowalski",
-        email ?? RandomData.UniqueEmail,
-        []
-    );
-}
-```
-
-### No mocking
-
-Integration tests use real infrastructure. No mocking — services are resolved from the DI container backed by a real PostgreSQL container.

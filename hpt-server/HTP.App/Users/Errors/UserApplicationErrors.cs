@@ -18,4 +18,7 @@ public static class UserApplicationErrors
 
     public static Error InvalidEmail =>
         Error.Validation("User.InvalidEmail", "Invalid email address.");
+
+    public static Error RoleNotFound(string roleName) =>
+        Error.NotFound("User.RoleNotFound", $"Role '{roleName}' was not found.");
 }
